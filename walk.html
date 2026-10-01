@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>さんぽ道｜しろへびさんぽ</title>
+  <script src="./js/checkpoints.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #0f2417;
+      color: #fffdf5;
+      padding: 14px;
+      font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+    }
+
+    a {
+      color: #fffdf5;
+    }
+
+    rt {
+      font-size: 0.5em;
+      font-weight: normal;
+    }
+
+    #bar {
+      height: 5px;
+      background: rgba(255, 255, 255, .18);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    #bar>i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: #fffdf5;
+      transition: width .4s;
+    }
+
+    #count {
+      margin-top: 6px;
+      font-size: 11px;
+      opacity: .7;
+      text-align: right;
+    }
+
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #stamps {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 0;
+    }
+
+    #panel {
+      background: rgba(15, 36, 23, .88);
+      border-radius: 14px;
+      padding: 12px 14px;
+      max-width: 520px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    #stampNote {
+      font-size: 14px;
+      line-height: 2;
+      font-weight: 600;
+      color: #fffdf5;
+      margin: 0;
+    }
+
+    #nextPic {
+      display: none;
+      width: 46%;
+      max-width: 150px;
+      margin: 10px auto 0;
+      border: 2px solid rgba(255, 255, 255, .5);
+      border-radius: 6px;
+    }
+
+    .btn {
+      display: none;
+      padding: 13px 34px;
+      border: none;
+      border-radius: 999px;
+      background: #fffdf5;
+      color: #0f2417;
+      font-size: 16px;
+      font-weight: bold;
+      line-height: 2;
+    }
+
+    #foot {
+      text-align: center;
+    }
+
+    .warn {
+      margin: 12px 0 0;
+      font-size: 11px;
+      line-height: 2.1;
+      opacity: .75;
+    }
+
+    #help {
+      margin-top: 12px;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    #help a,
+    #help a:link,
+    #help a:visited,
+    #help a:hover,
+    #help a:active {
+      color: #fffdf5;
+      opacity: .75;
+      text-decoration: underline;
+    }
+
+    /* ── 丸がひらいたときの点滅 ── */
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.18); }
+    }
+
+    .pulse {
+      animation: pulse 1.1s ease-in-out infinite;
+    }
+
+    /* ── 出発まえの準備画面 ── */
+    #ready {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: #0b1a12;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 30px;
+      text-align: center;
+    }
+
+    #ready.hidden {
+      display: none;
+    }
+
+    #readyText {
+      font-size: 15px;
+      line-height: 2.1;
+      margin: 0;
+      max-width: 340px;
+    }
+
+    #readyBtn {
+      display: inline-block;
+      padding: 15px 38px;
+      border: none;
+      border-radius: 999px;
+      background: #fffdf5;
+      color: #0f2417;
+      font-size: 17px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 出発まえの準備 -->
+  <div id="ready">
+    <p id="readyText"></p>
+    <button id="readyBtn">さんぽを はじめる</button>
+  </div>
+
+  <div id="bar"><i></i></div>
+  <div id="count"></div>
+
+  <div id="main">
+    <div id="stamps"></div>
+    <p id="help"><a href="#" id="mercyLink">まるがひらかないときはここをおしてください</a></p>
+    <div id="panel">
+      <p id="stampNote"><ruby>現在地<rt>げんざいち</rt></ruby>をさがしています…</p>
+      <img id="nextPic" alt="めじるし">
+    </div>
+    <button class="btn" id="toGoal"><ruby>神社<rt>じんじゃ</rt></ruby>へむかう</button>
+  </div>
+
+  <div id="foot">
+    <p class="warn"><ruby>歩<rt>ある</rt></ruby>きながら<ruby>画面<rt>がめん</rt></ruby>を<ruby>見<rt>み</rt></ruby>ないでください。<br><ruby>立<rt>た</rt></ruby>ち<ruby>止<rt>ど</rt></ruby>まってから<ruby>読<rt>よ</rt></ruby>み、<ruby>歩<rt>ある</rt></ruby>き<ruby>出<rt>だ</rt></ruby>すときは<ruby>画面<rt>がめん</rt></ruby>を<ruby>伏<rt>ふ</rt></ruby>せてください。</p>
+  </div>
+
+  <script>
+    let myPos = null, myAcc = 9999, gpsFailed = false, mercy = false;
+    let started = false;   // 出発ボタンを押したかどうか
+
+    /* ===== おしらせの音 ===== */
+    const SE = { unlock: new Audio('./audio/appear.mp3') };
+    Object.values(SE).forEach(a => a.volume = 0.8);
+
+    function se(name) {
+      const a = SE[name];
+      if (!a) return;
+      a.currentTime = 0;
+      a.play().catch(() => { });
+    }
+
+    /* ===== iPhone かどうかで案内を変える ===== */
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    document.getElementById('readyText').innerHTML = isIOS
+      ? 'しるしに <ruby>近<rt>ちか</rt></ruby>づくと<br><ruby>音<rt>おと</rt></ruby>で おしらせします。<br><br>' +
+      'iPhone は ほんたいの よこにある<br>ちいさな スイッチが マナーモードだと<br>' +
+      '<ruby>音<rt>おと</rt></ruby>が なりません。<br><br>' +
+      'スイッチを もどして、<br><ruby>音<rt>おと</rt></ruby>の おおきさも あげておいてね。'
+      : 'しるしに <ruby>近<rt>ちか</rt></ruby>づくと<br><ruby>音<rt>おと</rt></ruby>と ふるえで おしらせします。<br><br>' +
+      '<ruby>音<rt>おと</rt></ruby>が<ruby>出<rt>で</rt></ruby>るように しておいてね。';
+
+    /* ===== 出発ボタンで音を鳴らせる状態にする ===== */
+    document.getElementById('readyBtn').addEventListener('click', () => {
+      if (navigator.audioSession) navigator.audioSession.type = 'playback';
+      Object.values(SE).forEach(a => {
+        a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => { });
+      });
+      document.getElementById('ready').classList.add('hidden');
+      started = true;
+      renderStamps();   // 押したあとの状態で描きなおす
+    });
+
+    /* ===== ひらいた瞬間だけ知らせる ===== */
+    const notified = {};
+
+    function notify() {
+      se('unlock');
+      if (navigator.vibrate) navigator.vibrate([150, 90, 150, 90, 250]);
+    }
+
+    function renderStamps() {
+      const box = document.getElementById('stamps');
+      box.innerHTML = '';
+      CP_LIST.forEach(c => {
+        const got = Stamp.has(c.id);
+        const near = myPos && (distanceM(myPos.lat, myPos.lng, c.lat, c.lng) <= c.radius + myAcc);
+        const open = got || near || mercy;
+
+        // まだ取っていない丸が、はじめてひらいたとき
+        // 出発ボタンを押すまでは知らせない（音が出せないまま消費してしまうため）
+        if (started && near && !got && !notified[c.id]) {
+          notified[c.id] = true;
+          notify();
+        }
+
+        const el = document.createElement(open ? 'a' : 'span');
+        if (open) el.href = 'cp.html?id=' + c.id;
+        el.style.cssText =
+          'width:48px;height:48px;border-radius:50%;display:flex;align-items:center;' +
+          'justify-content:center;font-size:20px;text-decoration:none;transition:all .4s;' +
+          (got ? 'background:#fffdf5;color:#0f2417;border:2px solid #fffdf5;'
+            : open ? 'color:#fffdf5;border:2px solid #fffdf5;box-shadow:0 0 14px rgba(255,255,255,.7);'
+              : 'color:#fffdf5;border:2px dashed rgba(255,255,255,.3);opacity:.35;');
+        if (open && !got) el.className = 'pulse';
+        el.textContent = got ? '🐍' : (open ? c.id : '🔒');
+        box.appendChild(el);
+      });
+      updateProgress();
+      updateNote();
+    }
+
+    function updateProgress() {
+      const n = Stamp.count(), all = CP_LIST.length;
+      document.querySelector('#bar > i').style.width = (n / all * 100) + '%';
+      document.getElementById('count').textContent = 'しるし ' + n + ' / ' + all;
+      document.getElementById('toGoal').style.display = (n >= all) ? 'inline-block' : 'none';
+    }
+
+    function updateNote() {
+      const note = document.getElementById('stampNote');
+      const np = document.getElementById('nextPic');
+
+      if (Stamp.count() >= CP_LIST.length) {
+        note.innerHTML = 'しるしは ぜんぶ <ruby>集<rt>あつ</rt></ruby>まった！ <ruby>神社<rt>じんじゃ</rt></ruby>へむかおう。';
+        np.style.display = 'none';
+        return;
+      }
+      if (mercy) {
+        note.innerHTML = 'しるしをひらきました。<br>まるをタップしてください。';
+        np.style.display = 'none';
+        return;
+      }
+      if (gpsFailed) {
+        note.innerHTML = '<ruby>現在地<rt>げんざいち</rt></ruby>がわかりません。<br>まるがひらかないとき<ruby>用<rt>よう</rt></ruby>の<br>リンクをおしてください。';
+        np.style.display = 'none';
+        return;
+      }
+      if (!myPos) {
+        note.innerHTML = '<ruby>現在地<rt>げんざいち</rt></ruby>をさがしています…';
+        np.style.display = 'none';
+        return;
+      }
+
+      let best = null;
+      CP_LIST.forEach(c => {
+        if (Stamp.has(c.id)) return;
+        const d = Math.round(distanceM(myPos.lat, myPos.lng, c.lat, c.lng));
+        if (!best || d < best.d) best = { d: d, c: c };
+      });
+
+      if (!best) { np.style.display = 'none'; return; }
+      if (best.c.pic) { np.src = best.c.pic; np.style.display = 'block'; }
+      else np.style.display = 'none';
+
+      // place にルビのタグが入っているので innerHTML を使う
+      if (best.d <= best.c.radius + myAcc)
+        note.innerHTML = best.c.place + ' についた！<br>ひかっている まるを タップしてね';
+      else
+        note.innerHTML = 'つぎの しるし<br>（' + best.c.place + '）まで<br>およそ ' + best.d + ' m';
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition(
+        p => {
+          myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+          myAcc = Math.min(Math.round(p.coords.accuracy), 5);
+          gpsFailed = false;
+          renderStamps();
+        },
+        () => { gpsFailed = true; renderStamps(); },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+      );
+    } else { gpsFailed = true; }
+
+    document.getElementById('mercyLink').addEventListener('click', e => {
+      e.preventDefault();
+      mercy = true;
+      renderStamps();
+      document.getElementById('help').textContent = 'しるしをひらきました。';
+    });
+
+    document.getElementById('toGoal').addEventListener('click', () => {
+      localStorage.setItem('shirohebi_step', 'walk_done');
+      location.href = 'goal.html';
+    });
+
+    renderStamps();
+  </script>
+</body>
+
+</html>

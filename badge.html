@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>しろへびを よぶ | しろへびさんぽ</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.7.0/dist/aframe-extras.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+    }
+
+    .mindar-ui-overlay {
+      display: none !important;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .overlay.hidden {
+      display: none;
+    }
+
+    #scanUI {
+      background: rgba(0, 0, 0, .35);
+      color: #fffdf5;
+    }
+
+    #scanUI p {
+      background: rgba(15, 36, 23, .88);
+      border-radius: 12px;
+      padding: 12px 16px;
+      max-width: 520px;
+      margin: 0 auto;
+      font-weight: 600;
+      line-height: 1.8;
+    }
+
+    .scan-frame {
+      width: 52vw;
+      max-width: 240px;
+      aspect-ratio: 1;
+      border: 3px dashed rgba(255, 255, 255, .85);
+      border-radius: 50%;
+    }
+
+    #hello {
+      background: rgba(0, 0, 0, .45);
+      color: #fffdf5;
+      justify-content: flex-end;
+      padding-bottom: 40px;
+    }
+
+    #hello .panel {
+      background: rgba(15, 36, 23, .88);
+      border-radius: 14px;
+      padding: 16px 18px;
+      max-width: 520px;
+    }
+
+    #hello h2 {
+      font-size: 20px;
+      margin: 0 0 8px;
+      line-height: 1.6;
+    }
+
+    .note {
+      font-size: 13px;
+      line-height: 2;
+      opacity: .9;
+      margin: 0;
+    }
+    rt { font-size: 0.5em; font-weight: normal; }
+
+    .btn {
+      display: inline-block;
+      padding: 15px 34px;
+      border: none;
+      border-radius: 999px;
+      background: #f6f6f2;
+      color: #0f2417;
+      font-size: 17px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, .25);
+    }
+
+    .btn.ghost {
+      background: rgba(15, 36, 23, .8);
+      color: #fffdf5;
+      border: 2px solid rgba(255, 255, 255, .6);
+      box-shadow: none;
+      font-size: 14px;
+      padding: 10px 20px;
+    }
+
+    /* ── 登場のキラキラ ── */
+    #burst {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      pointer-events: none;
+      display: none;
+    }
+
+    #burst .flash {
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      animation: gflash 1.2s ease-out forwards;
+    }
+
+    #burst i {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: gspark 2.2s ease-out forwards;
+    }
+
+    @keyframes gflash {
+      0% { opacity: 0; }
+      15% { opacity: .85; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes gspark {
+      0% {
+        transform: translate(0, 0) scale(.2);
+        opacity: 0;
+      }
+
+      20% { opacity: 1; }
+
+      100% {
+        transform: translate(var(--dx), var(--dy)) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    /* スタッフ用の隠しボタン */
+    #staffZone {
+      position: fixed;
+      right: 0;
+      top: 0;
+      width: 64px;
+      height: 64px;
+      z-index: 200;
+      opacity: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="scanUI" class="overlay hidden">
+    <div class="scan-frame"></div>
+    <p>スタッフの<b><ruby>缶<rt>かん</rt></ruby>バッジ</b>にカメラを<ruby>向<rt>む</rt></ruby>けてください</p>
+    <p class="note">バッジが<ruby>丸<rt>まる</rt></ruby>い<ruby>枠<rt>わく</rt></ruby>いっぱいに<ruby>入<rt>はい</rt></ruby>るまで<ruby>近<rt>ちか</rt></ruby>づいて。<br>しばらくじっと<ruby>待<rt>ま</rt></ruby>つと、なにかが<ruby>現<rt>あらわ</rt></ruby>れます。</p>
+    <button class="btn ghost" id="helpBtn" style="display:none">うまく<ruby>写<rt>うつ</rt></ruby>らない</button>
+  </div>
+
+  <div id="hello" class="overlay hidden">
+    <div class="panel">
+      <h2>しろへびさまが<br>あらわれた！</h2>
+      <p class="note">ついておいで。<br>この<ruby>町<rt>まち</rt></ruby>のむかしを、<ruby>見<rt>み</rt></ruby>せてあげよう。</p>
+    </div>
+    <a class="btn" href="start2.html?from=badge">さんぽに<ruby>出<rt>で</rt></ruby>かける</a>
+  </div>
+
+  <div id="burst">
+    <div class="flash"></div>
+  </div>
+
+  <div id="staffZone"></div>
+
+  <a-scene mindar-image="imageTargetSrc: ./targets/badge.mind;
+                uiScanning: #scanUI; uiLoading: no;
+                missTolerance: 20; warmupTolerance: 3;" color-space="sRGB"
+    renderer="colorManagement: true; physicallyCorrectLights: true; antialias: true; toneMapping: linear; exposure: 1.3"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-assets>
+      <a-asset-item id="snakeModel" src="./models/shirohebi.glb"></a-asset-item>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity light="type: hemisphere; color: #ffffff; groundColor: #7d8a80; intensity: 0.8"></a-entity>
+    <a-entity light="type: ambient; color: #ffffff; intensity: 0.45"></a-entity>
+    <a-entity light="type: directional; color: #fff4e0; intensity: 2.0" position="2 3 2"></a-entity>
+    <a-entity light="type: directional; color: #cfe0ff; intensity: 0.9" position="-2 1 1"></a-entity>
+    <a-entity light="type: directional; color: #ffe9c4; intensity: 1.1" position="0 1 -2.5"></a-entity>
+
+    <a-entity id="target" mindar-image-target="targetIndex: 0">
+
+      <a-ring class="halo" position="0 0 0.02" rotation="-90 0 0" radius-inner="0.1" radius-outer="0.3" visible="false"
+        material="shader: flat; side: double; transparent: true; opacity: 0; color: #fff3c4"
+        animation__g="property: geometry.radiusOuter; from: 0.3; to: 2.2; dur: 2000; easing: easeOutQuad; startEvents: appear"
+        animation__f="property: material.opacity; from: 0.9; to: 0; dur: 2000; easing: easeOutQuad; startEvents: appear"></a-ring>
+
+      <a-ring class="halo" position="0 0 0.02" rotation="-90 0 0" radius-inner="0.1" radius-outer="0.3" visible="false"
+        material="shader: flat; side: double; transparent: true; opacity: 0; color: #ffd9e4"
+        animation__g="property: geometry.radiusOuter; from: 0.3; to: 1.7; dur: 2400; delay: 400; easing: easeOutQuad; startEvents: appear"
+        animation__f="property: material.opacity; from: 0.8; to: 0; dur: 2400; delay: 400; easing: easeOutQuad; startEvents: appear"></a-ring>
+
+      <a-ring class="halo" position="0 0 0.02" rotation="-90 0 0" radius-inner="0.1" radius-outer="0.3" visible="false"
+        material="shader: flat; side: double; transparent: true; opacity: 0; color: #cfe4ff"
+        animation__g="property: geometry.radiusOuter; from: 0.3; to: 2.0; dur: 2800; delay: 800; easing: easeOutQuad; startEvents: appear"
+        animation__f="property: material.opacity; from: 0.7; to: 0; dur: 2800; delay: 800; easing: easeOutQuad; startEvents: appear"></a-ring>
+
+      <!-- 外側の箱が動きを担当、内側のモデルは自前のうねりだけ -->
+      <a-entity id="snakeWrap" position="0 -0.2 0.35" scale="0.1 0.1 0.1" rotation="0 0 0"
+        animation__pop="property: scale; from: 0.1 0.1 0.1; to: 1.2 1.2 1.2;
+                        dur: 900; easing: easeOutBack; startEvents: appear"
+        animation__spin="property: rotation; from: 0 0 0; to: 0 360 0;
+                         dur: 2600; easing: easeInOutQuad; startEvents: appear">
+        <a-gltf-model id="snake" src="#snakeModel"
+          animation-mixer="clip: *; loop: repeat"></a-gltf-model>
+      </a-entity>
+
+    </a-entity>
+  </a-scene>
+
+  <script>
+    const snakeWrap = document.getElementById('snakeWrap');
+    const snake     = document.getElementById('snake');
+    const target    = document.getElementById('target');
+    const hello     = document.getElementById('hello');
+    const helpBtn   = document.getElementById('helpBtn');
+
+    let called = false;
+
+    /* ===== 白蛇をほのかに光らせる ===== */
+    snake.addEventListener('model-loaded', e => {
+      e.detail.model.traverse(o => {
+        if (!o.isMesh || !o.material) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(m => {
+          if (m.emissive) m.emissive.setHex(0x333333);
+          m.emissiveIntensity = 1;
+        });
+      });
+    });
+
+    /* ===== 効果音 ===== */
+    const SE = { appear: new Audio('./audio/appear.mp3') };
+    Object.values(SE).forEach(a => a.volume = 0.6);
+
+    function se(name) {
+      const a = SE[name];
+      if (!a) return;
+      a.currentTime = 0;
+      a.play().catch(() => { });
+    }
+
+    /* ===== 画面いっぱいのキラキラ ===== */
+    function burst() {
+      const box = document.getElementById('burst');
+      box.style.display = 'block';
+      const colors = ['#fff3c4', '#ffd9e4', '#cfe4ff', '#fffbe6'];
+      for (let i = 0; i < 60; i++) {
+        const s = document.createElement('i');
+        const a = Math.random() * Math.PI * 2;
+        const d = 120 + Math.random() * 320;
+        const c = colors[i % colors.length];
+        s.style.background = c;
+        s.style.boxShadow = '0 0 14px 5px ' + c;
+        s.style.setProperty('--dx', Math.cos(a) * d + 'px');
+        s.style.setProperty('--dy', Math.sin(a) * d + 'px');
+        s.style.animationDelay = (Math.random() * 0.8) + 's';
+        box.appendChild(s);
+      }
+      setTimeout(() => {
+        box.style.display = 'none';
+        box.querySelectorAll('i').forEach(e => e.remove());
+      }, 3200);
+    }
+
+    /* ===== 白蛇の登場 ===== */
+    function call() {
+      if (called) return;
+      called = true;
+
+      document.querySelectorAll('.halo').forEach(h => h.setAttribute('visible', true));
+      snakeWrap.emit('appear');
+      burst();
+      se('appear');
+
+      setTimeout(() => hello.classList.remove('hidden'), 3200);
+    }
+
+    target.addEventListener('targetFound', call);
+
+    // 20秒読み取れなければ救済ボタンを出す
+      setTimeout(() => { if (!called) helpBtn.style.display = 'inline-block'; }, 20000);
+    helpBtn.addEventListener('click', () => {
+      if (confirm('バッジが読み取れない場合、ここで先に進みます。よろしいですか？')) {
+        document.querySelector('#hello .btn').href = 'start2.html';
+        hello.classList.remove('hidden');
+      }
+    });
+    // スタッフ用：右上を3回タップで先へ
+       let staffTap = 0;
+    document.getElementById('staffZone').addEventListener('click', () => {
+      if (++staffTap >= 3) {
+        document.querySelector('#hello .btn').href = 'start2.html';
+        hello.classList.remove('hidden');
+      }
+    });
+
+  </script>
+</body>
+
+</html>

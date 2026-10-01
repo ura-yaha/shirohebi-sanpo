@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>しろへびさんぽ｜うつぼ白蛇AR</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #0f2417; color: #f6f6f2;
+      font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+      text-align: center; padding: 20px;
+    }
+    h1 { font-size: 28px; letter-spacing: .08em; margin: 0 0 8px; }
+    .sub { font-size: 14px; opacity: .8; margin: 0 0 32px; }
+    .btn {
+      display: inline-block; padding: 16px 40px; border: none; border-radius: 999px;
+      background: #f6f6f2; color: #0f2417; font-size: 18px; font-weight: bold;
+      text-decoration: none; cursor: pointer;
+    }
+    .btn + .btn { margin-top: 16px; }
+    .note { margin-top: 28px; font-size: 14px; line-height: 1.8; opacity: .7; }
+  </style>
+</head>
+<body>
+  <h1>しろへびさんぽ</h1>
+  <p class="sub">うつぼこうえんをさんぽしてクイズにチャレンジ！
+  </p>
+
+  <a class="btn" href="badge.html">スタッフのバッジをよみとる</a>
+  <a class="btn ghost" href="start2.html">バッジがないときはこちら</a>
+
+  <p class="note">
+    カメラ「許可」を選んでください。<br>
+  ゲーム中は音が出ますので、音量を調整してお楽しみください。<br>マナーモードだと音が鳴りません。<br></p>
+  <p class="note"></p>歩きながらの操作は危険です。<br>立ち止まって画面を見てください。</p>    
+
+  <script>
+document.getElementById('startBtn').addEventListener('click', async () => {
+  // 前回の続きから始めるか確認する
+  const saved = localStorage.getItem('shirohebi_stamps');
+  if (saved && JSON.parse(saved).length > 0) {
+    const keep = confirm('まえのとちゅうから つづけますか？\n\n「キャンセル」をえらぶと、はじめからになります。');
+    if (!keep) {
+      localStorage.removeItem('shirohebi_stamps');
+      localStorage.removeItem('shirohebi_step');
+    }
+  }
+
+  // 音声の自動再生ロックを解除（無音を1回鳴らす）
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    await ctx.resume();
+  } catch (e) { console.log('audio unlock skip', e); }
+
+      // カメラ許可をここで取得しておく
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+        stream.getTracks().forEach(t => t.stop()); // 許可だけ取って一旦停止
+      } catch (e) {
+        alert('カメラを使えませんでした。ブラウザの設定でカメラを許可してください。');
+        return;
+      }
+
+      // 次のページへ
+      location.href = 'start2.html';
+    });
+  </script>
+</body>
+</html>

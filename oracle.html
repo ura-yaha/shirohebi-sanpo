@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>白蛇のお告げ｜しろへびさんぽ</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 28px;
+      background: radial-gradient(circle at 50% 30%, #1b3a28, #0b1a12 70%);
+      color: #f6f6f2; font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; }
+
+    #lead { font-size: 13px; letter-spacing: .2em; opacity: .7; margin-bottom: 20px; }
+
+    #card { width: 100%; max-width: 340px; padding: 34px 28px 30px;
+      background: #f6f2e8; color: #1b2a20; border-radius: 4px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.45); text-align: center;
+      opacity: 0; transform: translateY(14px); transition: opacity .9s, transform .9s; }
+    #card.show { opacity: 1; transform: translateY(0); }
+
+    #title { font-size: 12px; letter-spacing: .3em; color: #6b7a6c; }
+    #omen  { font-size: 30px; letter-spacing: .18em; margin: 14px 0 6px; }
+    #omen small { display: block; font-size: 11px; letter-spacing: .1em; color: #6b7a6c; margin-top: 6px; }
+    hr { border: none; border-top: 1px solid #d8d2c2; margin: 20px 0; }
+    #msg  { font-size: 16px; line-height: 2.1; text-align: left; }
+    #hint { font-size: 13px; line-height: 1.9; text-align: left; margin-top: 18px;
+      padding-top: 14px; border-top: 1px dashed #d8d2c2; color: #4a5a4c; }
+
+    #date { margin-top: 18px; font-size: 11px; opacity: .55; }
+    .btn { margin-top: 26px; padding: 13px 32px; border: none; border-radius: 999px;
+      background: transparent; color: #f6f6f2; border: 1px solid rgba(255,255,255,.4);
+      font-family: inherit; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div id="lead">白 蛇 の お 告 げ</div>
+
+  <div id="card">
+    <div id="title">う つ ぼ 楠 永 神 社</div>
+    <div id="omen">—<small>—</small></div>
+    <hr>
+    <div id="msg"></div>
+    <div id="hint"></div>
+  </div>
+
+  <div id="date"></div>
+  <button class="btn" id="back">はじめに戻る</button>
+
+  <script>
+    // お告げの一覧。増やしたいときはこの配列に足すだけ
+    const omens = [
+      { omen: '巡',  yomi: 'めぐり',
+        msg: 'みずは、どんなかたちになっても、\nさいごは うみに もどる。\nとおまわりでも、だいじょうぶ。',
+        hint: 'どっちにしようか まよっているなら、\nどっちでも いいみたい。' },
+      { omen: '脱',  yomi: 'ぬけがら',
+        msg: 'へびは、かわを ぬいで おおきくなる。\nぬいだ かわは、もう きみじゃない。',
+        hint: 'いらないものを ひとつ、\nてばなしてみよう。' },
+      { omen: '根',  yomi: 'ね',
+        msg: 'この き は やけても たおれなかった。\nみえている みき より、\nみえない ね の ほうが ながい。',
+        hint: 'だれにも みせていない がんばりが、\nきみを ささえている。' },
+      { omen: '静',  yomi: 'しずか',
+        msg: 'しろへびは はやく はしらない。\nでも だれより はやく、\nみずの においに きづく。',
+        hint: 'きょうは はなすより、きく ひ。' },
+      { omen: '灯',  yomi: 'あかり',
+        msg: 'あかりは、くらいところで やくにたつ。\nきみの あかるさを、\nまっている ひとが いる。',
+        hint: 'しばらく あっていない ひとに、\nひとこと つたえてみよう。' },
+      { omen: '浜',  yomi: 'はま',
+        msg: 'むかし ここは うみべ だった。\nいま つちの したに あるものも、\nなみの おとを きいていた。',
+        hint: 'わすれたつもりの ねがいを、\nもういちど おもいだしてみよう。' },
+      { omen: '結',  yomi: 'むすび',
+        msg: 'へびは とぐろを まいて ちからを ためる。\nほどけた ひもも、\nまた むすべば つながる。',
+        hint: 'きょうは だれかに たのんで いい ひ。' },
+      { omen: '芽',  yomi: 'め',
+        msg: 'きは はるを まっていない。\nふゆの あいだに、\nもう めの したくを している。',
+        hint: 'まだ だれにも いっていない こと を、\nきょう すこし すすめてみよう。' }
+    ];
+
+    // 同じ日は同じお告げになるように、日付から番号を決める
+    const now = new Date();
+    const key = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    const pick = omens[key % omens.length];
+
+    document.getElementById('omen').innerHTML =
+      pick.omen + '<small>' + pick.yomi + '</small>';
+    document.getElementById('msg').textContent  = pick.msg;
+    document.getElementById('hint').textContent = pick.hint;
+    document.getElementById('date').textContent =
+      now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日のお告げ';
+
+    localStorage.setItem('shirohebi_step', 'goal_done');
+    localStorage.setItem('shirohebi_omen', pick.omen);
+
+    // ゆっくり浮かび上がらせる
+    setTimeout(() => document.getElementById('card').classList.add('show'), 600);
+
+    // 声でも読み上げる（walk.html と同じしくみ）
+    const SE = { bell: new Audio('./audio/bell.mp3') };
+Object.values(SE).forEach(a => a.volume = 0.6);
+
+function se(name) {
+  const a = SE[name];
+  if (!a) return;
+  a.currentTime = 0;
+  a.play().catch(() => {});
+}
+    document.getElementById('back').addEventListener('click', () => {
+      speechSynthesis.cancel();
+      location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>
